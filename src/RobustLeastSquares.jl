@@ -8,32 +8,11 @@ export reweighted_least_squares, mestimator_mad
 export MEstimator, MEstimatorConvex, MEstimatorNonConvex
 export L2Estimator, L1Estimator, L1L2Estimator, HuberEstimator, FairEstimator, CauchyEstimator, SubsetEstimator, SubsetEstimatorConvex, DualEstimator, DualEstimatorConvex
 
-
-
-using PyCall
-@pyimport pyamg
-@pyimport scipy.sparse as scipy_sparse
-
-# Helper function for python matrices
-function py_csc(A::SparseMatrixCSC)
-    # create an empty sparse matrix in Python
-    Apy = scipy_sparse.csc_matrix(size(A))
-    # write the values
-    Apy[:data] = copy(A.nzval)
-    # write the indices
-    Apy[:indices] = A.rowval - 1
-    Apy[:indptr] = A.colptr - 1
-    return Apy
-end
-py_csr(A::SparseMatrixCSC) = py_csc(A)[:tocsr]()
-
-
 # Weight functions
 # ----------------
 # A good overview of these can be found at:
 # http://research.microsoft.com/en-us/um/people/zhang/INRIA/Publis/Tutorial-Estim/node24.html
 
-# Standard L2 estimator
 """
 An m-estimator is a cost/loss function used in modified (weighted) least squares
 problems of the form:
@@ -49,9 +28,15 @@ function m_estimator_rho end
 "The derivative of the cost (a.k.a. loss) function ψ for the M-estimator"
 function m_estimator_psi end
 # TODO m_estimator_psi(r,est::MEstimator) = first derivative of m_estimator_rho(r,est) w.r.t. r
-"The weight function, w, for the M-estimator, to be used for modifying least-square problems"
+"""
+The weight function, w, for the M-estimator, to be used for modifying
+least-square problems
+"""
 m_estimator_weight(r,est::MEstimator) = m_estimator_psi(r,est) ./ r
-"The square root of the weight function, sqrt(w), for the M-estimator, to be used for modifying the normal equations of a least-squares problem"
+"""
+The square root of the weight function, sqrt(w), for the M-estimator, to be used
+for modifying the normal equations of a least-squares problem
+"""
 m_estimator_sqrtweight(r,est::MEstimator) = sqrt(m_estimator_weight(r,est))
 
 "The (convex) L2 M-estimator is that of the standard least squares problem."
@@ -62,8 +47,10 @@ m_estimator_psi(r,::L2Estimator) = r
 m_estimator_weight(r,::L2Estimator) = ones(size(r))
 m_estimator_sqrtweight(r,::L2Estimator) = ones(size(r))
 
-# Standard L1 estimator
-"The standard L1 M-estimator takes the absolute value of the residual, and is convex but non-smooth."
+"""
+The standard L1 M-estimator takes the absolute value of the residual, and is
+convex but non-smooth.
+"""
 immutable L1Estimator <: MEstimatorConvex; end
 L1Estimator(width) = L1Estimator()
 m_estimator_rho(r,::L1Estimator) = abs(r)
@@ -71,17 +58,20 @@ m_estimator_psi(r,::L1Estimator) = sign(r)
 m_estimator_weight(r,::L1Estimator) = 1.0 ./ abs(r)
 m_estimator_sqrtweight(r,::L1Estimator) = abs(r) .^ (-0.5)
 
-# Estimator interpolating between L1 and L2 norms (analytically smooth) TODO Add width function
-"The convex L1-L2 estimator interpolates smoothly between L2 behaviour for small residuals and L1 for outliers."
+"""
+The convex L1-L2 estimator interpolates smoothly between L2 behaviour for small
+residuals and L1 for outliers.
+"""
 immutable L1L2Estimator <: MEstimatorConvex; width::Float64; end
 m_estimator_rho(r,::L1L2Estimator) = 2.0*(sqrt(1.0 + 0.5*r.*r)-1.0)
 m_estimator_psi(r,::L1L2Estimator) = r ./ sqrt(1 + 0.5*r.*r)
 m_estimator_weight(r,::L1L2Estimator) = 1.0 / sqrt(1+0.5*r.*r)
 m_estimator_sqrtweight(r,::L1L2Estimator) = (1+0.5*r.*r) .^ (-1/4)
 
-# Huber Estimator for M-estimation
-# C2-continuous, behaving as L1 at long distances and L2 at short
-"The convex Huber estimator switches from between quadratic and linear cost/loss function at a certain cutoff."
+"""
+The convex Huber estimator switches from between quadratic and linear cost/loss
+function at a certain cutoff.
+"""
 immutable HuberEstimator <: MEstimatorConvex; width::Float64; end
 function m_estimator_rho(r,est::HuberEstimator)
     rho = 0.5*r.^2
@@ -108,25 +98,25 @@ function m_estimator_sqrtweight(r,est::HuberEstimator)
     return w
 end
 
-# The "fair" weighting factor for interpolating between L1 and L2 regularization
-# (C3 continuous but not analytically smooth)
-"""The (convex) "fair" estimator switches from between quadratic and linear cost/loss function at a certain cutoff, and is C3 but non-analytic."""
+"""
+The (convex) "fair" estimator switches from between quadratic and linear
+cost/loss function at a certain cutoff, and is C3 but non-analytic.
+"""
 immutable FairEstimator <: MEstimatorConvex; width::Float64; end
 m_estimator_rho(r,est::FairEstimator) = est.width^2 * (abs(r)/est.width - log(1 + abs(r)/est.width))
 m_estimator_psi(r,est::FairEstimator) = r ./ (1.0 + abs(r)/est.width)
 m_estimator_weight(r,est::FairEstimator) = 1.0 ./ (1.0 + abs(r)/est.width)
 m_estimator_sqrtweight(r,est::FairEstimator) = 1.0 ./ sqrt(1.0 + abs(r)/est.width)
 
-# The Cauchy (or Lorentzian) estimator. Non-convex with logarithmically-diverging
-# cost function means that wild outliers are mostly ignored, while still having a
-# somewhat-robust field-of-influence
-"""The non-convex Cauchy estimator switches from between quadratic behaviour to logarithmic tails. This rejects outliers but may result in mutliple minima."""
+"""
+The non-convex Cauchy estimator switches from between quadratic behaviour to
+logarithmic tails. This rejects outliers but may result in mutliple minima.
+"""
 immutable CauchyEstimator <: MEstimatorNonConvex; width::Float64; end
 m_estimator_rho(r,est::CauchyEstimator) = 0.5*est.width^2 * log(1 + r.*r/(est.width*est.width))
 m_estimator_psi(r,est::CauchyEstimator) = r ./ (1.0 + r.*r/(est.width*est.width))
 m_estimator_weight(r,est::CauchyEstimator) = 1.0 ./ (1.0 + r.*r/(est.width*est.width))
 m_estimator_sqrtweight(r,est::CauchyEstimator) = 1.0 ./ sqrt(1.0 + r.*r/(est.width*est.width))
-
 
 """
 A custom type for applying an estimators to only a subset of the range
@@ -161,7 +151,6 @@ function m_estimator_sqrtweight{T}(r,est::Union{SubsetEstimatorConvex{T},SubsetE
     w[est.rng] = m_estimator_sqrtweight(r[est.rng],est.est)
     return w
 end
-
 
 """
 A custom type for applying two estimators to different ranges
@@ -205,7 +194,10 @@ function m_estimator_sqrtweight{T1,T2}(r,est::Union{DualEstimatorConvex{T1,T2},D
     return w
 end
 
-"Recreate an M-Estimator of the same type using the MAD (median absolute deviation) of the residual"
+"""
+Recreate an M-Estimator of the same type using the MAD (median absolute
+deviation) of the residual
+"""
 mestimator_mad{T<:MEstimator}(Est::Type{T}, res, factor=1.0) = Est(factor*1.43*StatsBase.mad(res))
 function mestimator_mad{T}(Est::Union{Type{SubsetEstimator{T}},Type{SubsetEstimatorConvex{T}}}, rng, res, factor=1.0)
     return Est(rng, T(factor*1.43*StatsBase.mad(res[rng])))
@@ -224,29 +216,22 @@ end
 
 
 
-
-
 function solve(A,b,weights=ones(length(b)),method=:qr,x0=nothing)
     if method == :qr
-        return (spdiagm(weights)*A) \ (spdiagm(weights)*b)
-    elseif method == :qrnormal
-        return (A'*spdiagm(weights)*A) \ (A'*spdiagm(weights)*b)
-    elseif method == :lsqr
-        # Use a conjugate gradient method to find the solutoin (less memory)
-        (sol,ch) = lsqr!(sol,spdiagm(weights)*A,spdiagm(weights)*b)
-        return sol
-    elseif method == :amg
-        if isa(x0,Void)
-            error("Failed to specify starting vector for AMG method")
+        return (scale(weights,A)) \ (weights.*b)
+        # this works for sparse matrices:
+        #return Base.LinAlg.SparseMatrix.SPQR.solve(0,qrfact(sparse(spdiagm(weights)*A)),Base.LinAlg.SparseMatrix.CHOLMOD.Dense(spdiagm(weights)*b))
+    elseif method == :normal
+        return (A' * (scale(weights.^2,A))) \ (A' * (weights.^2.*b))
+    elseif method == :cg
+        # Use a conjugate gradient method to find the solution (less memory)
+        if x0 == nothing
+            x0 = zeros(size(A,2))
         end
-
-        # load into Python
-        A_py_csr = py_csr(A'*spdiagm(weights)*A)
-
-        #sol = ml[:solve](A'*spdiagm(weights)*b, tol=1e-10)
-        sol = pyamg.solve(A_py_csr,A'*spdiagm(weights)*b,tol=1e-10,x0=x0, maxiter=50)
+        (sol,ch) = lsqr!(x0,scale(weights,A),weights.*b)
+        return sol
     else
-        error("Method :$method should have been one of :qr, :qrnormal :lsqr or :amg")
+        error("Method :$method should have been one of :qr, :normal or :cg")
     end
 end
 
@@ -257,7 +242,13 @@ Solves a reweighted least squares problem: min ∑ᵢ ρ((A*sol - b)ᵢ) using t
 """
 function reweighted_least_squares(A::AbstractMatrix,b::AbstractVector,estimator::MEstimator = L2Estimator, x0 = nothing;method::Symbol=:qr, n_iter::Integer=10, reweight_MAD::Bool = false, quiet::Bool = false, kwargs...)
     local sol, res, weights
-    #res = Vector{Float64}()
+
+    s1,s2 = size(A)
+    if s1 == s2
+        warning("Encountered square matrix of size $s1. Julia will revert to linear solvers instead of least-square solvers, and throw an error if the matrix is singular.")
+    end
+
+    # Set the initial weights
     if isa(x0,Void)
         weights = ones(b)
     else
@@ -269,8 +260,7 @@ function reweighted_least_squares(A::AbstractMatrix,b::AbstractVector,estimator:
         end
     end
 
-    # Reweighted least squares...
-
+    # Perform the reweighted least squares
     if issparse(A)
         quiet || info("Solving a $(size(A)) reweighted least-squares problem. $(typeof(A)) matrix has $(nnz(A)) non-zero elements. Using $method method.")
     else
@@ -278,8 +268,6 @@ function reweighted_least_squares(A::AbstractMatrix,b::AbstractVector,estimator:
     end
 
     for i=1:n_iter
-        # Use the QR decomposition to find the solution
-        # TODO: change \ to enforce qrfact! to avoid corner cases (e.g. non-invertable square matrices)
         if i == 1
             sol = solve(A,b,weights,method,x0)
         else
@@ -287,7 +275,6 @@ function reweighted_least_squares(A::AbstractMatrix,b::AbstractVector,estimator:
         end
         res = A*sol - b
 
-        # reweight tile matches
         if reweight_MAD
             weights = m_estimator_sqrtweight(res, mestimator_mad(estimator,res,3.0))
         else
@@ -301,7 +288,5 @@ function reweighted_least_squares(A::AbstractMatrix,b::AbstractVector,estimator:
 
     return (sol,res,weights)
 end
-
-# package code goes here
 
 end # module
