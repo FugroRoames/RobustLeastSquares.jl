@@ -48,9 +48,9 @@ function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimat
     else
         res = A*x0 - b
         if reweight_MAD
-            weights = m_estimator_sqrtweight(res, mestimator_mad(estimator,res,3.0))
+            weights = estimator_sqrtweight(res, reweight_mad(estimator,res,3.0))
         else
-            weights = m_estimator_sqrtweight(res, estimator)
+            weights = estimator_sqrtweight(res, estimator)
         end
     end
 
@@ -70,9 +70,9 @@ function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimat
         res = A*sol - b
 
         if reweight_MAD
-            weights = m_estimator_sqrtweight(res, mestimator_mad(estimator,res,3.0))
+            weights = estimator_sqrtweight(res, reweight_mad(estimator,res,3.0))
         else
-            weights = m_estimator_sqrtweight(res, estimator)
+            weights = estimator_sqrtweight(res, estimator)
         end
 
         quiet || debug("Iteration $i, RMS residual $(sqrt(sum(res.*res)/length(res)))))")

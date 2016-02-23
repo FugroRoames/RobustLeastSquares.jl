@@ -12,20 +12,20 @@ abstract MEstimator
 
 # Default implementations from definintion of cost-function rho
 "The cost (a.k.a. loss) function ρ for the M-estimator"
-function m_estimator_rho end
+function estimator_rho end
 "The derivative of the cost (a.k.a. loss) function ψ for the M-estimator"
-function m_estimator_psi end
+function estimator_psi end
 # TODO m_estimator_psi(r,est::MEstimator) = first derivative of m_estimator_rho(r,est) w.r.t. r
 """
 The weight function, w, for the M-estimator, to be used for modifying the normal
 equations of a least-square problem
 """
-m_estimator_weight(r,est::MEstimator) = m_estimator_psi(r,est) ./ r
+estimator_weight(r,est::MEstimator) = m_estimator_psi(r,est) ./ r
 """
 The square root of the weight function, sqrt(w), for the M-estimator, to be used
 for modifying a least-squares problem
 """
-m_estimator_sqrtweight(r,est::MEstimator) = sqrt(m_estimator_weight(r,est))
+estimator_sqrtweight(r,est::MEstimator) = sqrt(m_estimator_weight(r,est))
 isconvex(::MEstimator) = false
 
 "The (convex) L2 M-estimator is that of the standard least squares problem."
@@ -56,7 +56,7 @@ residuals and L1 for outliers.
 immutable L1L2Estimator <: MEstimator; width::Float64; end
 estimator_rho(r,::L1L2Estimator) = 2.0*(sqrt(1.0 + 0.5*r.*r)-1.0)
 estimator_psi(r,::L1L2Estimator) = r ./ sqrt(1 + 0.5*r.*r)
-estimator_weight(r,::L1L2Estimator) = 1.0 / sqrt(1+0.5*r.*r)
+estimator_weight(r,::L1L2Estimator) = 1.0 ./ sqrt(1+0.5*r.*r)
 estimator_sqrtweight(r,::L1L2Estimator) = (1+0.5*r.*r) .^ (-1/4)
 isconvex(::L1L2Estimator) = true
 
@@ -72,15 +72,15 @@ function estimator_rho(r,est::HuberEstimator)
     return rho
 end
 function estimator_psi(r,est::HuberEstimator)
-    psi = r
+    psi = copy(r)
     absr = abs(r)
-    psi[absr .> est.width] = est.width * sign(absr[absr .> est.width])
+    psi[absr .> est.width] = est.width * sign(r[absr .> est.width])
     return psi
 end
 function estimator_weight(r,est::HuberEstimator)
     w = ones(size(r))
     absr = abs(r)
-    w[absr .> est.width] = est.width ./ absr[abs .> est.width]
+    w[absr .> est.width] = est.width ./ absr[absr .> est.width]
     return w
 end
 function estimator_sqrtweight(r,est::HuberEstimator)
@@ -121,7 +121,7 @@ Construct with syntax:
 
 Unfilled ranges will automatically use the standard L2-estimator.
 """
-immutable MultiEstimator{Estimators<:Tuple,Ranges<:Tuple}
+immutable MultiEstimator{Estimators<:Tuple,Ranges<:Tuple} <: MEstimator
     est::Estimators
     rng::Ranges
 
@@ -265,8 +265,8 @@ Recreate an M-Estimator of the same type using the MAD (median absolute
 deviation) of the residual
 """
 reweight_mad{T<:MEstimator}(Est::Union{T,Type{T}}, res, factor=1.0) = T(factor*1.43*StatsBase.mad(res))
-function estimator_mad{T<:MultiEstimator}(est::T, res, factor=1.0)
-    tmp = ntuple(i->(typeof(est.est[i])(factor*1.43*StatsBase.mad(res[est.rng[i]])) => rng.rng[i]),length(est.est))
+function reweight_mad{T<:MultiEstimator}(est::T, res, factor=1.0)
+    tmp = ntuple(i->(typeof(est.est[i])(factor*1.43*StatsBase.mad(res[est.rng[i]])) => est.rng[i]),length(est.est))
     return MultiEstimator(tmp...)
 end
 
