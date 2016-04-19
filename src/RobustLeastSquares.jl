@@ -34,21 +34,21 @@ end
 
 Solves a reweighted least squares problem: min ∑ᵢ ρ((A*sol - b)ᵢ) using the specified MEstimator for ρ and starting with sol (for initial weights).
 """
-function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimator = L2Estimator, x0 = nothing;method::Symbol=:qr, n_iter::Integer=10, reweight_MAD::Bool = false, quiet::Bool = false, kwargs...)
+function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimator = L2Estimator, x0 = nothing;method::Symbol=:qr, n_iter::Integer=10, refit::Bool = false, quiet::Bool = false, kwargs...)
     local sol, res, weights
 
     s1,s2 = size(A)
     if s1 == s2
-        warning("Encountered square matrix of size $s1. Julia will revert to linear solvers instead of least-square solvers, and throw an error if the matrix is singular.")
+        warn("Encountered square matrix of size $s1. Julia will revert to linear solvers instead of least-square solvers, and throw an error if the matrix is singular.")
     end
 
     # Set the initial weights
-    if isa(x0,Void)
+    if x0 === nothing
         weights = ones(b)
     else
         res = A*x0 - b
-        if reweight_MAD
-            weights = estimator_sqrtweight(res, reweight_mad(estimator,res,3.0))
+        if refit
+            weights = estimator_sqrtweight(res, refit_estimator(estimator, res, 3.0))
         else
             weights = estimator_sqrtweight(res, estimator)
         end
@@ -69,8 +69,8 @@ function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimat
         end
         res = A*sol - b
 
-        if reweight_MAD
-            weights = estimator_sqrtweight(res, reweight_mad(estimator,res,3.0))
+        if refit
+            weights = estimator_sqrtweight(res, refit_estimator(estimator,res,3.0))
         else
             weights = estimator_sqrtweight(res, estimator)
         end

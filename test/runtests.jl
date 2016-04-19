@@ -85,16 +85,16 @@ Logging.configure(level=Logging.DEBUG) # Useful to check convergence
 
         # Test the overall solver works...
         est = MultiEstimator(CauchyEstimator(width)=>1:10)
-        sol2_qr, res, weights = reweighted_lsqr(A,b,est;method=:qr, n_iter=30, reweight_MAD = false)
-        sol2_normal, res, weights = reweighted_lsqr(A,b,est;method=:normal, n_iter=30, reweight_MAD = false)
-        sol2_cg, res, weights = reweighted_lsqr(A,b,est;method=:cg, n_iter=30, reweight_MAD = false)
+        sol2_qr, res, weights = reweighted_lsqr(A,b,est;method=:qr, n_iter=30, refit = false)
+        sol2_normal, res, weights = reweighted_lsqr(A,b,est;method=:normal, n_iter=30, refit = false)
+        sol2_cg, res, weights = reweighted_lsqr(A,b,est;method=:cg, n_iter=30, refit = false)
 
         @test norm(sol2_qr - sol2_normal) < 1e-7
         @test norm(sol2_qr - sol2_cg) < 1e-7
 
-        sol3_qr, res, weights = reweighted_lsqr(A,b,est;method=:qr, n_iter=30, reweight_MAD = true)
-        sol3_normal, res, weights = reweighted_lsqr(A,b,est;method=:normal, n_iter=30, reweight_MAD = true)
-        sol3_cg, res, weights = reweighted_lsqr(A,b,est;method=:cg, n_iter=30, reweight_MAD = true)
+        sol3_qr, res, weights = reweighted_lsqr(A,b,est;method=:qr, n_iter=30, refit = true)
+        sol3_normal, res, weights = reweighted_lsqr(A,b,est;method=:normal, n_iter=30, refit = true)
+        sol3_cg, res, weights = reweighted_lsqr(A,b,est;method=:cg, n_iter=30, refit = true)
 
         @test norm(sol3_qr - sol3_normal) < 1e-7
         @test norm(sol3_qr - sol3_cg) < 1e-7

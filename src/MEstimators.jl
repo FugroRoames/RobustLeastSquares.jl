@@ -181,107 +181,13 @@ function isconvex(r,est::MultiEstimator)
     return out
 end
 
-#=
-"""
-A custom type for applying an estimators to only a subset of the range
-(uses L2 for any unspecified range)
-"""
-immutable SubsetEstimatorConvex{T<:MEstimatorConvex} <: MEstimatorConvex
-    rng::UnitRange{Int64}
-    est::T
-end
-immutable SubsetEstimator{T<:MEstimator} <: MEstimatorNonConvex
-    rng::UnitRange{Int64}
-    est::T
-end
-
-function m_estimator_rho{T}(r,est::Union{SubsetEstimatorConvex{T},SubsetEstimator{T}})
-    rho = 0.5*r.^2
-    rho[est.rng] = m_estimator_rho(r[est.rng],est.est)
-    return rho
-end
-function m_estimator_psi{T}(r,est::Union{SubsetEstimatorConvex{T},SubsetEstimator{T}})
-    psi = r
-    psi[est.rng] = m_estimator_psi(r[est.rng],est.est)
-    return psi
-end
-function m_estimator_weight{T}(r,est::Union{SubsetEstimatorConvex{T},SubsetEstimator{T}})
-    w = ones(size(r))
-    w[est.rng] = m_estimator_weight(r[est.rng],est.est)
-    return w
-end
-function m_estimator_sqrtweight{T}(r,est::Union{SubsetEstimatorConvex{T},SubsetEstimator{T}})
-    w = ones(size(r))
-    w[est.rng] = m_estimator_sqrtweight(r[est.rng],est.est)
-    return w
-end
 
 """
-A custom type for applying two estimators to different ranges
-(uses L2 for any unspecified range)
+Recreate an M-Estimator of the same type using the median absolute
+deviation of the residual
 """
-immutable DualEstimatorConvex{T1<:MEstimatorConvex,T2<:MEstimatorConvex} <: MEstimatorConvex
-    rng1::UnitRange{Int64}
-    est1::T1
-    rng2::UnitRange{Int64}
-    est2::T2
-end
-immutable DualEstimator{T1<:MEstimator,T2<:MEstimator} <: MEstimatorNonConvex
-    rng1::UnitRange{Int64}
-    est1::T1
-    rng2::UnitRange{Int64}
-    est2::T2
-end
-#DualEstimator = union(DualEstimatorConvex,DualEstimatorNonConvex)
-function m_estimator_rho{T1,T2}(r,est::Union{DualEstimatorConvex{T1,T2},DualEstimator{T1,T2}})
-    rho = 0.5*r.^2
-    rho[est.rng1] = m_estimator_rho(r[est.rng1],est.est1)
-    rho[est.rng2] = m_estimator_rho(r[est.rng2],est.est2)
-    return rho
-end
-function m_estimator_psi{T1,T2}(r,est::Union{DualEstimatorConvex{T1,T2},DualEstimator{T1,T2}})
-    psi = r
-    psi[est.rng1] = m_estimator_psi(r[est.rng1],est.est1)
-    psi[est.rng2] = m_estimator_psi(r[est.rng2],est.est2)
-    return phi
-end
-function m_estimator_weight{T1,T2}(r,est::Union{DualEstimatorConvex{T1,T2},DualEstimator{T1,T2}})
-    w = ones(size(r))
-    w[est.rng1] = m_estimator_weight(r[est.rng1],est.est1)
-    w[est.rng2] = m_estimator_weight(r[est.rng2],est.est2)
-    return w
-end
-function m_estimator_sqrtweight{T1,T2}(r,est::Union{DualEstimatorConvex{T1,T2},DualEstimator{T1,T2}})
-    w = ones(size(r))
-    w[est.rng1] = m_estimator_sqrtweight(r[est.rng1],est.est1)
-    w[est.rng2] = m_estimator_sqrtweight(r[est.rng2],est.est2)
-    return w
-end
-
-=#
-
-"""
-Recreate an M-Estimator of the same type using the MAD (median absolute
-deviation) of the residual
-"""
-reweight_mad{T<:MEstimator}(Est::Union{T,Type{T}}, res, factor=1.0) = T(factor*1.43*StatsBase.mad(res))
-function reweight_mad{T<:MultiEstimator}(est::T, res, factor=1.0)
+refit_estimator{T<:MEstimator}(Est::Union{T,Type{T}}, res, factor=1.0) = T(factor*1.43*StatsBase.mad(res))
+function refit_estimator{T<:MultiEstimator}(est::T, res, factor=1.0)
     tmp = ntuple(i->(typeof(est.est[i])(factor*1.43*StatsBase.mad(res[est.rng[i]])) => est.rng[i]),length(est.est))
     return MultiEstimator(tmp...)
 end
-
-
-#function mestimator_mad{T}(Est::Union{Type{SubsetEstimator{T}},Type{SubsetEstimatorConvex{T}}}, rng, res, factor=1.0)
-#    return Est(rng, T(factor*1.43*StatsBase.mad(res[rng])))
-#end
-#function mestimator_mad{T1,T2}(Est::Union{Type{DualEstimator{T1,T2}},Type{DualEstimatorConvex{T1,T2}}}, rng1, rng2, res, factor=1.0)
-#    return Est(rng1, T1(factor*1.43*StatsBase.mad(res[rng1])), rng2, T2(factor*1.43*StatsBase.mad(res[rng2])))
-#end
-
-#mestimator_mad(est::MEstimator, res, factor=1.0) = typeof(est)(factor*1.43*StatsBase.mad(res))
-#function mestimator_mad{T}(est::Union{SubsetEstimator{T},SubsetEstimatorConvex{T}}, res, factor=1.0)
-#    return typeof(est)(est.rng, T(factor*1.43*StatsBase.mad(res[est.rng])))
-#end
-#function mestimator_mad{T1,T2}(est::Union{DualEstimator{T1,T2},DualEstimatorConvex{T1,T2}}, res, factor=1.0)
-#    return typeof(est)(est.rng1, T1(factor*1.43*StatsBase.mad(res[est.rng1])), est.rng2, T2(factor*1.43*StatsBase.mad(res[est.rng2])))
-#end
