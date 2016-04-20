@@ -55,9 +55,9 @@ residuals and L1 for outliers.
 """
 immutable L1L2Estimator <: MEstimator; width::Float64; end
 estimator_rho(r,::L1L2Estimator) = 2.0*(sqrt(1.0 + 0.5*r.*r)-1.0)
-estimator_psi(r,::L1L2Estimator) = r ./ sqrt(1 + 0.5*r.*r)
-estimator_weight(r,::L1L2Estimator) = 1.0 ./ sqrt(1+0.5*r.*r)
-estimator_sqrtweight(r,::L1L2Estimator) = (1+0.5*r.*r) .^ (-1/4)
+estimator_psi(r,::L1L2Estimator) = r ./ sqrt(1.0 + 0.5*r.*r)
+estimator_weight(r,::L1L2Estimator) = 1.0 ./ sqrt(1.0 + 0.5*r.*r)
+estimator_sqrtweight(r,::L1L2Estimator) = (1.0 + 0.5*r.*r) .^ (-0.25)
 isconvex(::L1L2Estimator) = true
 
 """
@@ -96,7 +96,7 @@ The (convex) "fair" estimator switches from between quadratic and linear
 cost/loss function at a certain cutoff, and is C3 but non-analytic.
 """
 immutable FairEstimator <: MEstimator; width::Float64; end
-estimator_rho(r,est::FairEstimator) = est.width^2 * (abs(r)/est.width - log(1 + abs(r)/est.width))
+estimator_rho(r,est::FairEstimator) = est.width^2 * (abs(r)/est.width - log(1.0 + abs(r)/est.width))
 estimator_psi(r,est::FairEstimator) = r ./ (1.0 + abs(r)/est.width)
 estimator_weight(r,est::FairEstimator) = 1.0 ./ (1.0 + abs(r)/est.width)
 estimator_sqrtweight(r,est::FairEstimator) = 1.0 ./ sqrt(1.0 + abs(r)/est.width)
@@ -107,7 +107,7 @@ The non-convex Cauchy estimator switches from between quadratic behaviour to
 logarithmic tails. This rejects outliers but may result in mutliple minima.
 """
 immutable CauchyEstimator <: MEstimator; width::Float64; end
-estimator_rho(r,est::CauchyEstimator) = 0.5*est.width^2 * log(1 + r.*r/(est.width*est.width))
+estimator_rho(r,est::CauchyEstimator) = 0.5*est.width^2 * log(1.0 + r.*r/(est.width*est.width))
 estimator_psi(r,est::CauchyEstimator) = r ./ (1.0 + r.*r/(est.width*est.width))
 estimator_weight(r,est::CauchyEstimator) = 1.0 ./ (1.0 + r.*r/(est.width*est.width))
 estimator_sqrtweight(r,est::CauchyEstimator) = 1.0 ./ sqrt(1.0 + r.*r/(est.width*est.width))
