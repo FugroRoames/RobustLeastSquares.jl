@@ -140,7 +140,7 @@ isconvex(::WelschEstimator) = false
 The non-convex Tukey biweight estimator suppress the outliers
 """
 immutable TukeyEstimator <: MEstimator; width::Float64; end
-function estimator_rho(r,est::HuberEstimator)
+function estimator_rho(r,est::TukeyEstimator)
     rho = est.width^2/6.0 * (1.0 - (1.0 - (r/est.width).^2 ).^3)
     rho[est.width .< abs(r)] = est.width^2/6.0
     return rho
