@@ -137,7 +137,8 @@ isconvex(::WelschEstimator) = false
 
 
 """
-The non-convex Tukey biweight estimator suppress the outliers
+The non-convex Tukey biweight estimator which completly suppress the outliers,
+and does not guarantee a unique solution
 """
 immutable TukeyEstimator <: MEstimator; width::Float64; end
 function estimator_rho(r,est::TukeyEstimator)
