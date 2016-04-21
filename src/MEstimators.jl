@@ -129,10 +129,10 @@ isconvex(::GemanEstimator) = false
 The non-convex Welsch for strong supression of ourliers and does not guarantee a unique solution
 """
 immutable WelschEstimator <: MEstimator; width::Float64; end
-estimator_rho(r,est::WelschEstimator) = 0.5*est.width^2 *( 1.0 - exp(-(r/width).^2) )
-estimator_psi(r,est::WelschEstimator) = r.* exp(-(r/width).^2)
-estimator_weight(r,est::WelschEstimator) = exp(-(r/width).^2)
-estimator_sqrtweight(r,est::WelschEstimator) = exp(-0.5*(r/width).^2)
+estimator_rho(r,est::WelschEstimator) = 0.5*est.width^2 *( 1.0 - exp(-(r/est.width).^2) )
+estimator_psi(r,est::WelschEstimator) = r.* exp(-(r/est.width).^2)
+estimator_weight(r,est::WelschEstimator) = exp(-(r/est.width).^2)
+estimator_sqrtweight(r,est::WelschEstimator) = exp(-0.5*(r/est.width).^2)
 isconvex(::WelschEstimator) = false
 
 
