@@ -67,6 +67,21 @@ Logging.configure(level=Logging.DEBUG) # Useful to check convergence
         @test RobustLeastSquares.estimator_weight(r,CauchyEstimator(width))     ≈ [0.13793103448275862]
         @test RobustLeastSquares.estimator_sqrtweight(r,CauchyEstimator(width)) ≈ [0.3713906763541037]
 
+        @test RobustLeastSquares.estimator_rho(r,GemanEstimator())        ≈ [0.4807692307692308]
+        @test RobustLeastSquares.estimator_psi(r,GemanEstimator())        ≈ [0.0073964497041420114]
+        @test RobustLeastSquares.estimator_weight(r,GemanEstimator())     ≈ [0.0014792899408284023]
+        @test RobustLeastSquares.estimator_sqrtweight(r,GemanEstimator()) ≈ [0.038461538461538464]
+
+        @test RobustLeastSquares.estimator_rho(r,WelschEstimator(width))        ≈ [1.9961390917275446]
+        @test RobustLeastSquares.estimator_psi(r,WelschEstimator(width))        ≈ [0.009652270681138546]
+        @test RobustLeastSquares.estimator_weight(r,WelschEstimator(width))     ≈ [0.0019304541362277093]
+        @test RobustLeastSquares.estimator_sqrtweight(r,WelschEstimator(width)) ≈ [0.04393693362340742]
+
+        @test RobustLeastSquares.estimator_rho(r,TukeyEstimator(width))        ≈ [0.6666666666666666]
+        @test RobustLeastSquares.estimator_psi(r,TukeyEstimator(width))        ≈ [0.0]
+        @test RobustLeastSquares.estimator_weight(r,TukeyEstimator(width))     ≈ [0.0]
+        @test RobustLeastSquares.estimator_sqrtweight(r,TukeyEstimator(width)) ≈ [0.0]
+
         @test RobustLeastSquares.estimator_sqrtweight(b,MultiEstimator(CauchyEstimator(width)=>1:10))[1:10] ≈ RobustLeastSquares.estimator_sqrtweight(b[1:10],CauchyEstimator(width))
         @test RobustLeastSquares.estimator_sqrtweight(b,MultiEstimator(CauchyEstimator(width)=>1:10))[11:20] ≈ RobustLeastSquares.estimator_sqrtweight(b[11:20],L2Estimator(width))
     end

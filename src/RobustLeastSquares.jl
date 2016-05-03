@@ -4,9 +4,9 @@ using StatsBase
 using IterativeSolvers
 using Logging
 
-export reweighted_lsqr, reweight_mad
+export reweighted_lsqr, refit_estimator, estimator_weight
 
-export MEstimator, L2Estimator, L1Estimator, L1L2Estimator, HuberEstimator, FairEstimator, CauchyEstimator, MultiEstimator
+export MEstimator, L2Estimator, L1Estimator, L1L2Estimator, HuberEstimator, FairEstimator, CauchyEstimator, GemanEstimator, WelschEstimator,  TukeyEstimator, MultiEstimator
 
 include("MEstimators.jl")
 
