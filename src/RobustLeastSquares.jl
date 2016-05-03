@@ -4,9 +4,10 @@ using StatsBase
 using IterativeSolvers
 using Logging
 
-export reweighted_lsqr, refit_estimator, estimator_weight
+export reweighted_lsqr, refit_estimator
 
 export MEstimator, L2Estimator, L1Estimator, L1L2Estimator, HuberEstimator, FairEstimator, CauchyEstimator, GemanEstimator, WelschEstimator,  TukeyEstimator, MultiEstimator
+export estimator_rho, estimator_psi, estimator_weight, estimator_sqrtweight
 
 include("MEstimators.jl")
 
@@ -34,7 +35,7 @@ end
 
 Solves a reweighted least squares problem: min ∑ᵢ ρ((A*sol - b)ᵢ) using the specified MEstimator for ρ and starting with sol (for initial weights).
 """
-function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimator = L2Estimator, x0 = nothing;method::Symbol=:qr, n_iter::Integer=10, refit::Bool = false, quiet::Bool = false, kwargs...)
+function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimator = L2Estimator(), x0 = nothing;method::Symbol=:qr, n_iter::Integer=10, refit::Bool = false, quiet::Bool = false, kwargs...)
     local sol, res, weights
 
     s1,s2 = size(A)
