@@ -148,7 +148,7 @@ function estimator_rho(r,est::TukeyEstimator)
 end
 function estimator_psi(r,est::TukeyEstimator)
     psi = r.* (1.0 - (r/est.width).^2).^2
-    rho[est.width .< abs(r)] = 0.0
+    psi[est.width .< abs(r)] = 0.0
     return psi
 end
 function estimator_weight(r,est::TukeyEstimator)
