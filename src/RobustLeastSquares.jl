@@ -2,7 +2,7 @@ module RobustLeastSquares
 
 using StatsBase
 using IterativeSolvers
-using Logging
+using MicroLogging
 
 export reweighted_lsqr, refit_estimator
 
@@ -13,17 +13,25 @@ include("MEstimators.jl")
 
 function solve(A,b,weights=ones(length(b)),method=:qr,x0=nothing)
     if method == :qr
+        a = copy(A)         # Create a copy of A to stop reference
+        scale!(weights, a)        # Multiply a by the weights
+        return qrfact!(a) \ (weights.*b)  # Least squares solution (same as x = R\(Q'*b)
         return (scale(weights,A)) \ (weights.*b)
         # this works for sparse matrices:
         #return Base.LinAlg.SparseMatrix.SPQR.solve(0,qrfact(sparse(spdiagm(weights)*A)),Base.LinAlg.SparseMatrix.CHOLMOD.Dense(spdiagm(weights)*b))
     elseif method == :normal
-        return (A' * (scale(weights.^2,A))) \ (A' * (weights.^2.*b))
+        a = copy(A)         # Create a copy of A to stop reference
+        scale!(weights.^2, a)        # Multiply a by the weights
+        return qrfact!(A' * a) \ (A' * (weights.^2.*b))
+        return (A' * (scale!(weights.^2,A))) \ (A' * (weights.^2.*b))
     elseif method == :cg
         # Use a conjugate gradient method to find the solution (less memory)
         if x0 == nothing
             x0 = zeros(size(A,2))
         end
-        (sol,ch) = lsqr!(x0,scale(weights,A),weights.*b)
+        a = copy(A)
+        scale!(weights, a)
+        (sol,ch) = lsqr!(x0, a, b)
         return sol
     else
         error("Method :$method should have been one of :qr, :normal or :cg")
@@ -40,7 +48,7 @@ function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimat
 
     s1,s2 = size(A)
     if s1 == s2
-        warn("Encountered square matrix of size $s1. Julia will revert to linear solvers instead of least-square solvers, and throw an error if the matrix is singular.")
+        @warn "Encountered square matrix of size $s1. Julia will revert to linear solvers instead of least-square solvers, and throw an error if the matrix is singular."
     end
 
     # Set the initial weights
@@ -76,10 +84,10 @@ function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimat
             weights = estimator_sqrtweight(res, estimator)
         end
 
-        quiet || debug("Iteration $i, RMS residual $(sqrt(sum(res.*res)/length(res)))))")
+        quiet || @debug "Iteration $i, RMS residual $(sqrt(sum(res.*res)/length(res)))))"
     end
 
-    quiet || info("Root-mean-square weighted residual error = $(sqrt(sum(res.^2)/length(res)))")
+    quiet || @info "Root-mean-square weighted residual error = $(sqrt(sum(res.^2)/length(res)))"
 
     return (sol,res,weights)
 end

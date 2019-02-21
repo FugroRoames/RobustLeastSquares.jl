@@ -1,7 +1,7 @@
 using RobustLeastSquares
 using BaseTestNext
 
-Logging.configure(level=Logging.DEBUG) # Useful to check convergence
+MicroLogging.configure_logging(min_level=MicroLogging.Debug) # Useful to check convergence
 
 # Test solve()
 @testset "RobustLeastSqures" begin
