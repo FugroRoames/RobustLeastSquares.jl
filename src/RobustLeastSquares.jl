@@ -13,17 +13,17 @@ include("MEstimators.jl")
 
 function solve(A,b,weights=ones(length(b)),method=:qr,x0=nothing)
     if method == :qr
-        return (scale(weights,A)) \ (weights.*b)
+        return (Diagonal(weights) * A) \ (weights.*b)
         # this works for sparse matrices:
         #return Base.LinAlg.SparseMatrix.SPQR.solve(0,qrfact(sparse(spdiagm(weights)*A)),Base.LinAlg.SparseMatrix.CHOLMOD.Dense(spdiagm(weights)*b))
     elseif method == :normal
-        return (A' * (scale(weights.^2,A))) \ (A' * (weights.^2.*b))
+        return (A' * (Diagonal(weights.^2) * A)) \ (A' * (weights.^2.*b))
     elseif method == :cg
         # Use a conjugate gradient method to find the solution (less memory)
         if x0 == nothing
             x0 = zeros(size(A,2))
         end
-        (sol,ch) = lsqr!(x0,scale(weights,A),weights.*b)
+        sol = lsqr!(x0, Diagonal(weights) * A, weights.*b)
         return sol
     else
         error("Method :$method should have been one of :qr, :normal or :cg")

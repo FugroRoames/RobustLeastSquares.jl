@@ -8,7 +8,8 @@ An m-estimator is a cost/loss function used in modified (weighted) least squares
 problems of the form:
     min ∑ᵢ ρ(rᵢ)
 """
-abstract MEstimator
+abstract type MEstimator
+end
 
 # Default implementations from definintion of cost-function rho
 "The cost (a.k.a. loss) function ρ for the M-estimator"
@@ -25,7 +26,7 @@ estimator_weight(r,est::MEstimator) = m_estimator_psi(r,est) ./ r
 The square root of the weight function, sqrt(w), for the M-estimator, to be used
 for modifying a least-squares problem
 """
-estimator_sqrtweight(r,est::MEstimator) = sqrt(m_estimator_weight(r,est))
+estimator_sqrtweight(r,est::MEstimator) = sqrt.(m_estimator_weight(r,est))
 isconvex(::MEstimator) = false
 
 "The (convex) L2 M-estimator is that of the standard least squares problem."
@@ -43,10 +44,10 @@ convex but non-smooth.
 """
 immutable L1Estimator <: MEstimator; end
 L1Estimator(width) = L1Estimator()
-estimator_rho(r,::L1Estimator) = abs(r)
-estimator_psi(r,::L1Estimator) = sign(r)
-estimator_weight(r,::L1Estimator) = 1.0 ./ abs(r)
-estimator_sqrtweight(r,::L1Estimator) = abs(r) .^ (-0.5)
+estimator_rho(r,::L1Estimator) = abs.(r)
+estimator_psi(r,::L1Estimator) = sign.(r)
+estimator_weight(r,::L1Estimator) = 1.0 ./ abs.(r)
+estimator_sqrtweight(r,::L1Estimator) = abs.(r) .^ (-0.5)
 isconvex(::L1Estimator) = true
 
 """
@@ -54,9 +55,9 @@ The convex L1-L2 estimator interpolates smoothly between L2 behaviour for small
 residuals and L1 for outliers.
 """
 immutable L1L2Estimator <: MEstimator; width::Float64; end
-estimator_rho(r,::L1L2Estimator) = 2.0*(sqrt(1.0 + 0.5*r.*r)-1.0)
-estimator_psi(r,::L1L2Estimator) = r ./ sqrt(1.0 + 0.5*r.*r)
-estimator_weight(r,::L1L2Estimator) = 1.0 ./ sqrt(1+0.5*r.*r)
+estimator_rho(r,::L1L2Estimator) = 2.0*(sqrt.(1.0 + 0.5*r.*r)-1.0)
+estimator_psi(r,::L1L2Estimator) = r ./ sqrt.(1.0 + 0.5*r.*r)
+estimator_weight(r,::L1L2Estimator) = 1.0 ./ sqrt.(1+0.5*r.*r)
 estimator_sqrtweight(r,::L1L2Estimator) = (1.0 + 0.5*r.*r) .^ (-1/4)
 isconvex(::L1L2Estimator) = true
 
@@ -67,26 +68,26 @@ function at a certain cutoff.
 immutable HuberEstimator <: MEstimator; width::Float64; end
 function estimator_rho(r,est::HuberEstimator)
     rho = 0.5*r.^2
-    absr = abs(r)
+    absr = abs.(r)
     rho[absr .> est.width] = est.width * (absr[absr .> est.width] - 0.5*est.width)
     return rho
 end
 function estimator_psi(r,est::HuberEstimator)
     psi = copy(r)
-    absr = abs(r)
-    psi[absr .> est.width] = est.width * sign(r[absr .> est.width])
+    absr = abs.(r)
+    psi[absr .> est.width] = est.width * sign.(r[absr .> est.width])
     return psi
 end
 function estimator_weight(r,est::HuberEstimator)
     w = ones(size(r))
-    absr = abs(r)
+    absr = abs.(r)
     w[absr .> est.width] = est.width ./ absr[absr .> est.width]
     return w
 end
 function estimator_sqrtweight(r,est::HuberEstimator)
     w = ones(size(r))
-    absr = abs(r)
-    w[absr .> est.width] = sqrt(est.width ./ absr[absr .> est.width])
+    absr = abs.(r)
+    w[absr .> est.width] = sqrt.(est.width ./ absr[absr .> est.width])
     return w
 end
 isconvex(::HuberEstimator) = true
@@ -96,10 +97,10 @@ The (convex) "fair" estimator switches from between quadratic and linear
 cost/loss function at a certain cutoff, and is C3 but non-analytic.
 """
 immutable FairEstimator <: MEstimator; width::Float64; end
-estimator_rho(r,est::FairEstimator) = est.width^2 * (abs(r)/est.width - log(1.0 + abs(r)/est.width))
-estimator_psi(r,est::FairEstimator) = r ./ (1.0 + abs(r)/est.width)
-estimator_weight(r,est::FairEstimator) = 1.0 ./ (1.0 + abs(r)/est.width)
-estimator_sqrtweight(r,est::FairEstimator) = 1.0 ./ sqrt(1.0 + abs(r)/est.width)
+estimator_rho(r,est::FairEstimator) = est.width^2 * (abs.(r)/est.width - log.(1.0 + abs.(r)/est.width))
+estimator_psi(r,est::FairEstimator) = r ./ (1.0 + abs.(r)/est.width)
+estimator_weight(r,est::FairEstimator) = 1.0 ./ (1.0 + abs.(r)/est.width)
+estimator_sqrtweight(r,est::FairEstimator) = 1.0 ./ sqrt.(1.0 + abs.(r)/est.width)
 isconvex(::FairEstimator) = true
 
 """
@@ -107,10 +108,10 @@ The non-convex Cauchy estimator switches from between quadratic behaviour to
 logarithmic tails. This rejects outliers but may result in mutliple minima.
 """
 immutable CauchyEstimator <: MEstimator; width::Float64; end
-estimator_rho(r,est::CauchyEstimator) = 0.5*est.width^2 * log(1.0 + r.*r/(est.width*est.width))
+estimator_rho(r,est::CauchyEstimator) = 0.5*est.width^2 * log.(1.0 + r.*r/(est.width*est.width))
 estimator_psi(r,est::CauchyEstimator) = r ./ (1.0 + r.*r/(est.width*est.width))
 estimator_weight(r,est::CauchyEstimator) = 1.0 ./ (1.0 + r.*r/(est.width*est.width))
-estimator_sqrtweight(r,est::CauchyEstimator) = 1.0 ./ sqrt(1.0 + r.*r/(est.width*est.width))
+estimator_sqrtweight(r,est::CauchyEstimator) = 1.0 ./ sqrt.(1.0 + r.*r/(est.width*est.width))
 isconvex(::CauchyEstimator) = false
 
 
@@ -129,10 +130,10 @@ isconvex(::GemanEstimator) = false
 The non-convex Welsch for strong supression of ourliers and does not guarantee a unique solution
 """
 immutable WelschEstimator <: MEstimator; width::Float64; end
-estimator_rho(r,est::WelschEstimator) = 0.5*est.width^2 *( 1.0 - exp(-(r/est.width).^2) )
-estimator_psi(r,est::WelschEstimator) = r.* exp(-(r/est.width).^2)
-estimator_weight(r,est::WelschEstimator) = exp(-(r/est.width).^2)
-estimator_sqrtweight(r,est::WelschEstimator) = exp(-0.5*(r/est.width).^2)
+estimator_rho(r,est::WelschEstimator) = 0.5*est.width^2 *( 1.0 - exp.(-(r/est.width).^2) )
+estimator_psi(r,est::WelschEstimator) = r.* exp.(-(r/est.width).^2)
+estimator_weight(r,est::WelschEstimator) = exp.(-(r/est.width).^2)
+estimator_sqrtweight(r,est::WelschEstimator) = exp.(-0.5*(r/est.width).^2)
 isconvex(::WelschEstimator) = false
 
 
@@ -143,22 +144,22 @@ and does not guarantee a unique solution
 immutable TukeyEstimator <: MEstimator; width::Float64; end
 function estimator_rho(r,est::TukeyEstimator)
     rho = est.width^2/6.0 * (1.0 - (1.0 - (r/est.width).^2 ).^3)
-    rho[est.width .< abs(r)] = est.width^2/6.0
+    rho[est.width .< abs.(r)] = est.width^2/6.0
     return rho
 end
 function estimator_psi(r,est::TukeyEstimator)
     psi = r.* (1.0 - (r/est.width).^2).^2
-    psi[est.width .< abs(r)] = 0.0
+    psi[est.width .< abs.(r)] = 0.0
     return psi
 end
 function estimator_weight(r,est::TukeyEstimator)
     w = (1.0 - (r/est.width).^2).^2
-    w[est.width .< abs(r)] = 0.0
+    w[est.width .< abs.(r)] = 0.0
     return w
 end
 function estimator_sqrtweight(r,est::TukeyEstimator)
     w = (1.0 - (r/est.width).^2)
-    w[est.width .< abs(r)] = 0.0
+    w[est.width .< abs.(r)] = 0.0
     return w
 end
 isconvex(::TukeyEstimator) = true
@@ -172,7 +173,7 @@ Construct with syntax:
 
 Unfilled ranges will automatically use the standard L2-estimator.
 """
-immutable MultiEstimator{Estimators<:Tuple,Ranges<:Tuple} <: MEstimator
+struct MultiEstimator{Estimators<:Tuple,Ranges<:Tuple} <: MEstimator
     est::Estimators
     rng::Ranges
 
@@ -237,8 +238,8 @@ end
 Recreate an M-Estimator of the same type using the median absolute
 deviation of the residual
 """
-refit_estimator{T<:MEstimator}(Est::Union{T,Type{T}}, res, factor=1.0) = T(factor*1.43*StatsBase.mad(res))
+refit_estimator{T<:MEstimator}(Est::Union{T,Type{T}}, res, factor=1.0) = T(factor*1.43*StatsBase.mad(res, normalize=false))
 function refit_estimator{T<:MultiEstimator}(est::T, res, factor=1.0)
-    tmp = ntuple(i->(typeof(est.est[i])(factor*1.43*StatsBase.mad(res[est.rng[i]])) => est.rng[i]),length(est.est))
+    tmp = ntuple(i->(typeof(est.est[i])(factor*1.43*StatsBase.mad(res[est.rng[i]], normalize=false)) => est.rng[i]),length(est.est))
     return MultiEstimator(tmp...)
 end
