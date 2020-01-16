@@ -1,10 +1,10 @@
-FROM julia:0.6
+FROM julia:0.7
 
 WORKDIR /home
 
 COPY test/REQUIRE /home
 
-RUN for dep in $(cat REQUIRE); do julia -e "Pkg.add(\"${dep}\")"; done
+RUN for dep in $(cat REQUIRE); do julia -e "using Pkg; Pkg.add(\"${dep}\")"; done
 
 COPY . /home
 

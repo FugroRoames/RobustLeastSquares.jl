@@ -3,6 +3,8 @@ module RobustLeastSquares
 using StatsBase
 using IterativeSolvers
 using Logging
+using LinearAlgebra
+using SparseArrays
 
 export reweighted_lsqr, refit_estimator
 
@@ -17,7 +19,7 @@ function solve(A,b,weights=ones(length(b)),method=:qr,x0=nothing)
         # this works for sparse matrices:
         #return Base.LinAlg.SparseMatrix.SPQR.solve(0,qrfact(sparse(spdiagm(weights)*A)),Base.LinAlg.SparseMatrix.CHOLMOD.Dense(spdiagm(weights)*b))
     elseif method == :normal
-        return (A' * (Diagonal(weights.^2) * A)) \ (A' * (weights.^2.*b))
+        return (A' * (Diagonal(weights.^2) * A)) \ (A' * (weights .^ 2 .*b))
     elseif method == :cg
         # Use a conjugate gradient method to find the solution (less memory)
         if x0 == nothing
@@ -45,7 +47,7 @@ function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimat
 
     # Set the initial weights
     if x0 === nothing
-        weights = ones(b)
+        weights = fill(1, size(b))
     else
         res = A*x0 - b
         if refit
@@ -57,9 +59,9 @@ function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimat
 
     # Perform the reweighted least squares
     if issparse(A)
-        quiet || info("Solving a $(size(A)) reweighted least-squares problem. $(typeof(A)) matrix has $(nnz(A)) non-zero elements. Using $method method.")
+        quiet || @info "Solving a $(size(A)) reweighted least-squares problem. $(typeof(A)) matrix has $(nnz(A)) non-zero elements. Using $method method."
     else
-        quiet || info("Solving a $(size(A)) reweighted least-squares problem with a $(typeof(A)). Using $method method.")
+        quiet || @info "Solving a $(size(A)) reweighted least-squares problem with a $(typeof(A)). Using $method method."
     end
 
     for i=1:n_iter
@@ -76,10 +78,10 @@ function reweighted_lsqr(A::AbstractMatrix,b::AbstractVector,estimator::MEstimat
             weights = estimator_sqrtweight(res, estimator)
         end
 
-        quiet || debug("Iteration $i, RMS residual $(sqrt(sum(res.*res)/length(res)))))")
+        quiet || @info "Iteration $i, RMS residual $(sqrt(sum(res.*res)/length(res)))))"
     end
 
-    quiet || info("Root-mean-square weighted residual error = $(sqrt(sum(res.^2)/length(res)))")
+    quiet || @info "Root-mean-square weighted residual error = $(sqrt(sum(res.^2)/length(res)))"
 
     return (sol,res,weights)
 end
