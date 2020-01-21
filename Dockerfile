@@ -2,9 +2,9 @@ FROM julia:1.3
 
 WORKDIR /home
 
-COPY test/REQUIRE /home
+COPY Project.toml /home
 
-RUN for dep in $(cat REQUIRE); do julia -e "using Pkg; Pkg.add(\"${dep}\")"; done
+RUN julia --project=/home -e "using Pkg; Pkg.instantiate();"
 
 COPY . /home
 

@@ -178,18 +178,18 @@ struct MultiEstimator{Estimators<:Tuple,Ranges<:Tuple} <: MEstimator
     rng::Ranges
 
     function MultiEstimator{Estimators, Ranges}(est::Estimators, rng::Ranges) where {Estimators<:Tuple, Ranges<:Tuple}
-    	if length(est) != length(rng)
-    		error("Must have same number of estimators and ranges")
-    	end
-    	for i = 1:length(est)
-    		if !isa(est[i],MEstimator)
-    			error("Expecting an M-estimator, got $(est[i]) of type $(typeof(est[i]))")
-    		end
-    		if !hasmethod(Base.getindex,(Vector{Float64},typeof(rng[i])))
-    			error("Expecting an indexible range, got $(rng[i]) of type $(typeof(rng[i]))")
-    		end
-    	end
-    	new{Estimators, Ranges}(est,rng)
+        if length(est) != length(rng)
+            error("Must have same number of estimators and ranges")
+        end
+        for i = 1:length(est)
+            if !isa(est[i],MEstimator)
+                error("Expecting an M-estimator, got $(est[i]) of type $(typeof(est[i]))")
+            end
+            if !hasmethod(Base.getindex,(Vector{Float64},typeof(rng[i])))
+                error("Expecting an indexible range, got $(rng[i]) of type $(typeof(rng[i]))")
+            end
+        end
+        new{Estimators, Ranges}(est,rng)
     end
 end
 

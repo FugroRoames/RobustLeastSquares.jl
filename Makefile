@@ -13,7 +13,7 @@ docker-build:
 .PHONY: docker-test
 ## Runs tests in docker container
 docker-test: docker-build
-	docker run -ti --env "JULIA_LOAD_PATH=:/home/src" $(CONTAINER_NAME):latest julia "test/runtests.jl"
+	docker run -ti --env "JULIA_LOAD_PATH=:/home/src:/home" $(CONTAINER_NAME):latest julia "test/runtests.jl"
 
 .PHONY: test
 ## Run tests locally
