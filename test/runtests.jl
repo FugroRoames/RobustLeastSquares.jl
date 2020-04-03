@@ -1,7 +1,7 @@
 using RobustLeastSquares
-using BaseTestNext
-
-Logging.configure(level=Logging.DEBUG) # Useful to check convergence
+using Test
+using LinearAlgebra
+using Random
 
 # Test solve()
 @testset "RobustLeastSqures" begin
@@ -10,10 +10,10 @@ Logging.configure(level=Logging.DEBUG) # Useful to check convergence
         s1 = 20
         s2 = 10
 
-        rng = srand(0)
+        rng = Random.seed!(0)
         A = rand(rng,s1,s2)
         b = rand(rng,s1)
-        weights = 1 + 0.2(rand(rng,s1)-0.5)
+        weights = 1 .+ 0.2(rand(rng,s1) .- 0.5)
 
         sol_qr = RobustLeastSquares.solve(A,b,weights,:qr)
         sol_normal = RobustLeastSquares.solve(A,b,weights,:normal)
@@ -31,10 +31,10 @@ Logging.configure(level=Logging.DEBUG) # Useful to check convergence
         s1 = 20
         s2 = 10
 
-        rng = srand(0)
+        rng = Random.seed!(0)
         A = rand(rng,s1,s2)
         b = rand(rng,s1)
-        weights = 1 + 0.2(rand(rng,s1)-0.5)
+        weights = 1 .+ 0.2(rand(rng,s1) .- 0.5)
 
         @test RobustLeastSquares.estimator_rho(r,L2Estimator())        ≈ [12.5]
         @test RobustLeastSquares.estimator_psi(r,L2Estimator())        ≈ [5.0]
@@ -93,10 +93,10 @@ Logging.configure(level=Logging.DEBUG) # Useful to check convergence
         s1 = 20
         s2 = 10
 
-        rng = srand(0)
+        rng = Random.seed!(0)
         A = rand(rng,s1,s2)
         b = rand(rng,s1)
-        weights = 1 + 0.2(rand(rng,s1)-0.5)
+        weights = 1 .+ 0.2(rand(rng,s1) .- 0.5)
 
         # Test the overall solver works...
         est = MultiEstimator(CauchyEstimator(width)=>1:10)
